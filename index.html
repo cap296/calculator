@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sleep Cycle Calculator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background:#000;
+  color:#fff;
+  margin:0;
+  padding:16px;
+}
+.card {
+  background:#111;
+  max-width:420px;
+  margin:auto;
+  padding:16px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,.6);
+}
+h1 { font-size:20px; margin-bottom:12px; }
+.toggle {
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+}
+.toggle button {
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #333;
+  background:#222;
+  color:#aaa;
+}
+.toggle .active {
+  background:#fff;
+  color:#000;
+}
+label {
+  display:block;
+  margin-top:12px;
+  font-size:14px;
+  color:#bbb;
+}
+input {
+  width:100%;
+  margin-top:6px;
+  padding:10px;
+  font-size:16px;
+  border-radius:10px;
+  border:1px solid #333;
+  background:#000;
+  color:#fff;
+}
+button.primary {
+  width:100%;
+  margin-top:16px;
+  padding:12px;
+  font-size:16px;
+  border-radius:12px;
+  background:#fff;
+  color:#000;
+  border:none;
+}
+.result {
+  margin-top:8px;
+  padding:12px;
+  border-radius:12px;
+  background:#1c1c1e;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.optimal {
+  background:#2c2c2e;
+  outline:1px solid #4cd964;
+}
+a {
+  color:#4da3ff;
+  font-size:13px;
+  text-decoration:none;
+}
+.install {
+  background:#1c1c1e;
+  color:#bbb;
+  padding:10px;
+  border-radius:10px;
+  font-size:13px;
+  margin-bottom:12px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div id="installTip" class="install" style="display:none;">
+    Add to Home Screen: Share → Add to Home Screen
+  </div>
+
+  <h1>Sleep Cycle Calculator</h1>
+
+  <div class="toggle">
+    <button id="wakeBtn" class="active">When should I wake up?</button>
+    <button id="bedBtn">When should I go to bed?</button>
+  </div>
+
+  <label id="timeLabel">When are you going to bed?</label>
+  <input type="time" id="timeInput">
+
+  <label>Fall asleep time (minutes)</label>
+  <input type="number" id="fall" value="15" min="0" max="60">
+
+  <button class="primary" onclick="calculate()">Calculate</button>
+
+  <div id="results"></div>
+
+  <p style="margin-top:12px;">
+    <a href="https://www.icloud.com/shortcuts/" target="_blank">
+      Install Alarm Shortcut (one‑time)
+    </a>
+  </p>
+</div>
+
+<script>
+let mode = "wake";
+
+wakeBtn.onclick = () => setMode("wake");
+bedBtn.onclick = () => setMode("bed");
+
+function setMode(m) {
+  mode = m;
+  wakeBtn.classList.toggle("active", m==="wake");
+  bedBtn.classList.toggle("active", m==="bed");
+  timeLabel.textContent = m==="wake"
+    ? "When are you going to bed?"
+    : "When do you need to wake up?";
+}
+
+function calculate() {
+  const t = timeInput.value;
+  if (!t) return;
+
+  const [h,m] = t.split(":").map(Number);
+  const fallMin = parseInt(fall.value,10);
+
+  let base = new Date();
+  base.setHours(h,m,0,0);
+  results.innerHTML = "";
+
+  for (let i=1;i<=9;i++) {
+    let d = new Date(base);
+    let offset = fallMin + i*90;
+    d.setMinutes(d.getMinutes() + (mode==="wake"?offset:-offset));
+
+    let hrs = d.getHours()%12 || 12;
+    let mins = String(d.getMinutes()).padStart(2,"0");
+    let ampm = d.getHours()>=12?"PM":"AM";
+
+    let div = document.createElement("div");
+    div.className = "result" + ((i===5||i===6)?" optimal":"");
+    div.innerHTML = `
+      <span>${hrs}:${mins} ${ampm} (${i} cycles)</span>
+      <a href="shortcuts://run-shortcut?name=Create%20Alarm&input=${hrs}:${mins}%20${ampm}">
+        Set alarm
+      </a>`;
+    results.appendChild(div);
+  }
+}
+
+if (!window.matchMedia('(display-mode: standalone)').matches) {
+  document.getElementById("installTip").style.display = "block";
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
